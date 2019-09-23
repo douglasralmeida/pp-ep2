@@ -3,6 +3,8 @@
 #include <utils.h>
 #include <rselect.h>
 
+// Randomized Selection
+
 int particao(int a[], int p, int r) {
     int pivo = a[r];
     int i = p - 1;
@@ -19,9 +21,9 @@ int particao(int a[], int p, int r) {
 }
 
 int ParticaoAleatoria(int a[], int p, int r) {
-    int i = rand() % r + 1;
+    int i = p + rand() % (r - p + 1);
 
-    trocar(a + i, a + r);
+    trocar(a + i, a + p);
 
     return particao(a, p, r);
 }
@@ -32,7 +34,6 @@ int SelecaoAleatoria(int a[], int p, int r, int i) {
     
     if (p == r)
         return a[p];
-
     q = ParticaoAleatoria(a, p, r);
     k = q - p + 1;
     if (i == k)

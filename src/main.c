@@ -4,23 +4,6 @@
 #include "utils.h"
 #include "rselect.h"
 
-void autoprocessar() {
-    int n = 25;
-    int A[n];
-    time_t t;
- 
-    srand((unsigned) time(&t));
-    for (int i = 0; i < n; i++) {
-        int z = rand() % 100;
-        printf("%d ", z);
-        A[i] = z;
-    }
-    printf("\n");
-    
-    int pos = rand() % n + 1;
-    int r = SelecaoAleatoria(A, 0, n-1, pos);
-    printf("Resultado = %dº: %d\n", pos, r);
-}
 
 void imprimirVetor(int* A, int n) {
     for (int i = 0; i < n; i++)
@@ -39,7 +22,7 @@ void processar(int n, int i, int imprimirtudo, int numthreads) {
     dados.resultado = 0;
     dados.tempogasto = 0.0;
     for (int i = 0; i < n; i++)
-        dados.vetor[i] = rand();
+        dados.vetor[i] = rand() % 50;
         
     selecionar(&dados);
 
