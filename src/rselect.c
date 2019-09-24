@@ -6,13 +6,13 @@
 // Randomized Selection
 
 int particao(int a[], int p, int r) {
-    int pivo = a[r];
+    int x = a[r];
     int i = p - 1;
 
-    for (int x = p; x < r; x++) {
-        if(a[x] <= pivo){
+    for (int j = p; j < r; j++) {
+        if(a[j] <= x){
             i++;
-            trocar(a + i, a + x);
+            trocar(a + i, a + j);
         }
     }
     trocar(a + i + 1, a + r);

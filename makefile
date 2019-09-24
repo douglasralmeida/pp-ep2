@@ -7,8 +7,8 @@ SERIALNAME=serial
 PARALELNAME=paralel
 CC=gcc
 
-CFLAGS=-fopenmp -std=c99 -c -O3 -Wall -Wextra -Wpedantic $(DEFS) -Iinclude/
-LIBS=-lm -fopenmp
+CFLAGS=-lpthread -fopenmp -std=c99 -c -O3 -Wall -Wextra -Wpedantic $(DEFS) -Iinclude/
+LIBS=-lm -lpthread -fopenmp
 DBGFLAGS=-ggdb -fno-inline -fno-omit-frame-pointer
 BINDIR=bin
 OBJDIR=obj

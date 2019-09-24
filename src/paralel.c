@@ -5,69 +5,69 @@
 #include "utils.h"
 
 typedef struct mudanca_s {
-    int *bitsL;
-    int *L;
-    int *prefixSumL;
-    int *bitsR;
-    int *R;
-    int *prefixSumR;
-    int *A;  
-    int idx;
+    int* bitsE;
+    int* esq;
+    int* prefixoSomaE;
+    int* bitsD;
+    int* dir;
+    int* prefixoSomaD;
+    int* A;  
+    int id;
 } mudanca_t;
 
 typedef struct particao_s {
-    int *R;
-    int sizeR;
-    int *L;
-    int sizeL;
+    int* dir;
+    int tamanhoD;
+    int* esq;
+    int tamanhoE;
 } particao_t;
 
 void mudar(mudanca_t* dados) {
-  if (dados->bitsL[dados->idx] == 1)
-    dados->L[dados->prefixSumL[dados->idx] - 1] = dados->A[dados->idx];
-  if (dados->bitsR[dados->idx] == 1)
-    dados->R[dados->prefixSumR[dados->idx] - 1] = dados->A[dados->idx];
+  if (dados->bitsE[dados->id] == 1)
+    dados->esq[dados->prefixoSomaE[dados->id] - 1] = dados->A[dados->id];
+  if (dados->bitsD[dados->id] == 1)
+    dados->dir[dados->prefixoSomaD[dados->id] - 1] = dados->A[dados->id];
 }
 
-void somarPrefixos(int* prefixSumL, int* prefixSumR, int* bitsL, int* bitsR, int n) {
-    prefixSumL[0] = bitsL[0];
-    prefixSumR[0] = bitsR[0];
+void somarPrefixos(int* prefixoSomaE, int* prefixoSomaD, int* bitsE, int* bitsD, int n) {
+    prefixoSomaE[0] = bitsE[0];
+    prefixoSomaD[0] = bitsD[0];
     for(int i = 1; i < n; i++) {
-        prefixSumL[i] = prefixSumL[i-1] + bitsL[i];
-        prefixSumR[i] = prefixSumR[i-1] + bitsR[i];
+        prefixoSomaE[i] = prefixoSomaE[i-1] + bitsE[i];
+        prefixoSomaD[i] = prefixoSomaD[i-1] + bitsD[i];
     }
 }
 
 particao_t* particao(int* A, int n, int pivo, piscina_t* piscina) {
     int j;
-    int* bitsL = (int*)calloc(n, sizeof(int));
-    int* bitsR = (int*)calloc(n, sizeof(int));
-    int* prefixSumL = (int*)calloc(n, sizeof(int));
-    int* prefixSumR = (int*)calloc(n, sizeof(int));
+    int* bitsE = (int*)calloc(n, sizeof(int));
+    int* bitsD = (int*)calloc(n, sizeof(int));
+    int* prefixoSomaE = (int*)calloc(n, sizeof(int));
+    int* prefixoSomaD = (int*)calloc(n, sizeof(int));
   
     for (j = 0; j < n; j++) {
         if (A[j] < pivo)
-            bitsL[j] = 1;
+            bitsE[j] = 1;
         else if (A[j] > pivo)
-            bitsR[j] = 1;
+            bitsD[j] = 1;
     }
-    somarPrefixos(prefixSumL, prefixSumR, bitsL, bitsR, n);
+    somarPrefixos(prefixoSomaE, prefixoSomaD, bitsE, bitsD, n);
 
-    int sizeL = prefixSumL[n - 1];
-    int sizeR = prefixSumR[n - 1];
-    int* L = (int*)calloc(sizeL, sizeof(int));
-    int* R = (int*)calloc(sizeR, sizeof(int));
+    int tamanhoE = prefixoSomaE[n - 1];
+    int tamanhoD = prefixoSomaD[n - 1];
+    int* esq = (int*)calloc(tamanhoE, sizeof(int));
+    int* dir = (int*)calloc(tamanhoD, sizeof(int));
     for(j = 0; j < n; j++) {
         int memalocar = 1;
         mudanca_t* dados = (mudanca_t*)malloc(sizeof(mudanca_t)); 
-        dados->bitsL = bitsL;
-        dados->L = L;
-        dados->prefixSumL = prefixSumL;
-        dados->bitsR = bitsR;
-        dados->R = R;
-        dados->prefixSumR = prefixSumR;
+        dados->bitsE = bitsE;
+        dados->esq = esq;
+        dados->prefixoSomaE = prefixoSomaE;
+        dados->bitsD = bitsD;
+        dados->dir = dir;
+        dados->prefixoSomaD = prefixoSomaD;
         dados->A = A;
-        dados->idx = j;
+        dados->id = j;
 
         piscina_enfileirar(piscina, (void*)dados, memalocar);
     }
@@ -75,10 +75,10 @@ particao_t* particao(int* A, int n, int pivo, piscina_t* piscina) {
   piscina_esperar(piscina);
 
   particao_t* resultado = (particao_t*)malloc(sizeof(particao_t));
-  resultado->L = L;
-  resultado->sizeL = sizeL;
-  resultado->R = R;
-  resultado->sizeR = sizeR;
+  resultado->esq = esq;
+  resultado->tamanhoE = tamanhoE;
+  resultado->dir = dir;
+  resultado->tamanhoD = tamanhoD;
 
   return resultado;
 }
@@ -88,14 +88,16 @@ int SelecaoAleatoria(int* A, int n, int i, piscina_t* piscina) {
     int pivo = A[x];
     particao_t* resultado = particao(A, n, pivo, piscina);
 
-    if (resultado->sizeL == i - 1)
+    if (resultado->tamanhoE == i - 1)
         return pivo;
-    if (resultado->sizeL == 0 && resultado->sizeR == 0)
+    if (resultado->tamanhoE == 0 && resultado->tamanhoD == 0)
         return pivo;
-    if (resultado->sizeL >= i)
-        return SelecaoAleatoria(resultado->L, resultado->sizeL, i, piscina);
+    if (resultado->tamanhoE >= i)
+        return SelecaoAleatoria(resultado->esq, resultado->tamanhoE, i, piscina);
     else
-        return SelecaoAleatoria(resultado->R, resultado->sizeR, i - resultado->sizeL - 1, piscina);
+        return SelecaoAleatoria(resultado->dir, resultado->tamanhoD, i - resultado->tamanhoE - 1, piscina);
+        
+    return 0;
 }
 
 void selecionar(dados_t* dados) {
