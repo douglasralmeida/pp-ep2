@@ -3,10 +3,10 @@
 
 typedef struct {
     int* vetor;
-    int numthreads;
-    int posicao;
-    int resultado;
-    int tamanho;
+    unsigned long numthreads;
+    unsigned long posicao;
+    unsigned long resultado;
+    unsigned long tamanho;
     double tempogasto;
 } dados_t;
 

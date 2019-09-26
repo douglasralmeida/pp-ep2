@@ -5,12 +5,12 @@
 #include "rselect.h"
 
 
-void imprimirVetor(int* A, int n) {
-    for (int i = 0; i < n; i++)
+void imprimirVetor(int* A, unsigned long n) {
+    for (unsigned long i = 0; i < n; i++)
         printf("%d ", A[i]);
 }
 
-void processar(int n, int i, int imprimirtudo, int numthreads) {
+void processar(unsigned long n, unsigned long i, int imprimirtudo, unsigned long numthreads) {
     time_t hora;
     dados_t dados;
     
@@ -21,32 +21,32 @@ void processar(int n, int i, int imprimirtudo, int numthreads) {
     dados.posicao = i;
     dados.resultado = 0;
     dados.tempogasto = 0.0;
-    for (int i = 0; i < n; i++)
+    for (unsigned long i = 0; i < n; i++)
         dados.vetor[i] = rand() % 50;
         
     selecionar(&dados);
 
     if (imprimirtudo) {
         imprimirVetor(dados.vetor, n);
-        printf("\n%d\n", dados.resultado);
+        printf("\n%lu\n", dados.resultado);
     }
     printf("%.6f\n", dados.tempogasto);
 }
 
-void receberEntrada(char* argv[], int* n, int* i, int* saidacompleta, int* t) {
-    *n = atoi(argv[1]);
-    *i = atoi(argv[2]);
+void receberEntrada(char* argv[], unsigned long* n, unsigned long* i, int* saidacompleta, unsigned long* t) {
+    *n = atol(argv[1]);
+    *i = atol(argv[2]);
     *saidacompleta = 0;
     if (argv[3][0] == 'a')
         *saidacompleta = 1;
-    *t = atoi(argv[4]);
+    *t = atol(argv[4]);
 }
 
 int main(int argc, char *argv[]) {
-    int tamanho;
-    int iesimo;
+    unsigned long tamanho;
+    unsigned long iesimo;
     int saida;
-    int numthreads;
+    unsigned long numthreads;
     
     if (argc > 4) {
         receberEntrada(argv, &tamanho, &iesimo, &saida, &numthreads);

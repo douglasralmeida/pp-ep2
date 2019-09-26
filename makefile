@@ -7,18 +7,18 @@ SERIALNAME=serial
 PARALELNAME=paralel
 CC=gcc
 
-CFLAGS=-lpthread -fopenmp -std=c99 -c -O3 -Wall -Wextra -Wpedantic $(DEFS) -Iinclude/
+CFLAGS=-fopenmp -std=c99 -c -O3 -Wall -Wextra -Wpedantic $(DEFS) -Iinclude/
 LIBS=-lm -lpthread -fopenmp
 DBGFLAGS=-ggdb -fno-inline -fno-omit-frame-pointer
 BINDIR=bin
 OBJDIR=obj
 SOBJFILES=utils.o rselect.o serial.o main.o
-POBJFILES=piscina.o paralel.o main.o
+POBJFILES=paralel.o main.o
 SOBJECTS=$(addprefix $(OBJDIR)/, $(SOBJFILES))
 POBJECTS=$(addprefix $(OBJDIR)/, $(POBJFILES))
 SOURCEDIR=src
 ARGS=25 3 all 2
-ARGS1=30 4 all 2
+ARGS1=30 4 all 3
 
 $(OBJDIR)/%.o: $(SOURCEDIR)/%.c
 	@echo 

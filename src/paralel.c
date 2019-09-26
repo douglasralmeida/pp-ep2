@@ -1,112 +1,69 @@
 #include <omp.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "piscina.h"
+#include <string.h>
 #include "utils.h"
 
-typedef struct mudanca_s {
-    int* bitsE;
-    int* esq;
-    int* prefixoSomaE;
-    int* bitsD;
-    int* dir;
-    int* prefixoSomaD;
-    int* A;  
-    int id;
-} mudanca_t;
+typedef struct threadinfo_s {
+    int* vetor;
+    unsigned long esq;
+    unsigned long dir;
+    unsigned long indice;
+} threadinfo_t;
 
-typedef struct particao_s {
-    int* dir;
-    int tamanhoD;
-    int* esq;
-    int tamanhoE;
-} particao_t;
-
-void mudar(mudanca_t* dados) {
-  if (dados->bitsE[dados->id] == 1)
-    dados->esq[dados->prefixoSomaE[dados->id] - 1] = dados->A[dados->id];
-  if (dados->bitsD[dados->id] == 1)
-    dados->dir[dados->prefixoSomaD[dados->id] - 1] = dados->A[dados->id];
+void particao() {
 }
 
-void somarPrefixos(int* prefixoSomaE, int* prefixoSomaD, int* bitsE, int* bitsD, int n) {
-    prefixoSomaE[0] = bitsE[0];
-    prefixoSomaD[0] = bitsD[0];
-    for(int i = 1; i < n; i++) {
-        prefixoSomaE[i] = prefixoSomaE[i-1] + bitsE[i];
-        prefixoSomaD[i] = prefixoSomaD[i-1] + bitsD[i];
-    }
-}
 
-particao_t* particao(int* A, int n, int pivo, piscina_t* piscina) {
-    int j;
-    int* bitsE = (int*)calloc(n, sizeof(int));
-    int* bitsD = (int*)calloc(n, sizeof(int));
-    int* prefixoSomaE = (int*)calloc(n, sizeof(int));
-    int* prefixoSomaD = (int*)calloc(n, sizeof(int));
-  
-    for (j = 0; j < n; j++) {
-        if (A[j] < pivo)
-            bitsE[j] = 1;
-        else if (A[j] > pivo)
-            bitsD[j] = 1;
-    }
-    somarPrefixos(prefixoSomaE, prefixoSomaD, bitsE, bitsD, n);
+//SelecaoAleatoriaDistribuida é executada em cada thread paralelamente
+void* SelecaoAleatoriaDistribuida(void* info) {
+    unsigned long i;
+    threadinfo_t* minhainfo = (threadinfo_t*)info;
 
-    int tamanhoE = prefixoSomaE[n - 1];
-    int tamanhoD = prefixoSomaD[n - 1];
-    int* esq = (int*)calloc(tamanhoE, sizeof(int));
-    int* dir = (int*)calloc(tamanhoD, sizeof(int));
-    for(j = 0; j < n; j++) {
-        int memalocar = 1;
-        mudanca_t* dados = (mudanca_t*)malloc(sizeof(mudanca_t)); 
-        dados->bitsE = bitsE;
-        dados->esq = esq;
-        dados->prefixoSomaE = prefixoSomaE;
-        dados->bitsD = bitsD;
-        dados->dir = dir;
-        dados->prefixoSomaD = prefixoSomaD;
-        dados->A = A;
-        dados->id = j;
-
-        piscina_enfileirar(piscina, (void*)dados, memalocar);
-    }
-
-  piscina_esperar(piscina);
-
-  particao_t* resultado = (particao_t*)malloc(sizeof(particao_t));
-  resultado->esq = esq;
-  resultado->tamanhoE = tamanhoE;
-  resultado->dir = dir;
-  resultado->tamanhoD = tamanhoD;
-
-  return resultado;
-}
-
-int SelecaoAleatoria(int* A, int n, int i, piscina_t* piscina) {
-    int x = rand() % n;
-    int pivo = A[x];
-    particao_t* resultado = particao(A, n, pivo, piscina);
-
-    if (resultado->tamanhoE == i - 1)
-        return pivo;
-    if (resultado->tamanhoE == 0 && resultado->tamanhoD == 0)
-        return pivo;
-    if (resultado->tamanhoE >= i)
-        return SelecaoAleatoria(resultado->esq, resultado->tamanhoE, i, piscina);
-    else
-        return SelecaoAleatoria(resultado->dir, resultado->tamanhoD, i - resultado->tamanhoE - 1, piscina);
-        
-    return 0;
+    char teste[256];
+    
+    sprintf(teste, "Thread %lu: ", minhainfo->indice);
+    for (i = minhainfo->esq; i <= minhainfo->dir; i++)
+        sprintf(teste + strlen(teste), "%d ", minhainfo->vetor[i]);
+    sprintf(teste + strlen(teste), "\n\n");
+    printf("%s", teste);
+    
+    return NULL;
 }
 
 void selecionar(dados_t* dados) {
+    unsigned long i;
+    threadinfo_t* info;
+    pthread_t* threads;
     double tempoinicial, tempofinal;
+
+    //Cria as threads e divide o vetor inicial para cada uma
+    info = (threadinfo_t*)malloc(dados->numthreads * sizeof(threadinfo_t));
+    threads = (pthread_t*)malloc(dados->numthreads * sizeof(pthread_t));
+    for (i = 0; i < dados->numthreads; i++) {
+        info[i].indice = i;
+        info[i].esq = i * dados->tamanho / dados->numthreads;
+        info[i].dir = (i+1) * dados->tamanho / dados->numthreads - 1;   
+        info[i].vetor = dados->vetor;
+    }
+    info[i-1].dir = dados->tamanho - 1;
     
-    piscina_t* piscina = piscina_criar((void*)(*mudar), dados->numthreads);
-    
+    //Executa todas as threads
     tempoinicial = omp_get_wtime();
-    dados->resultado = SelecaoAleatoria(dados->vetor, dados->tamanho, dados->posicao, piscina);
+    for (i = 0; i < dados->numthreads; i++)
+        pthread_create(&(threads[i]), NULL, SelecaoAleatoriaDistribuida, (void*)(info + i));
+
+    //Aguarda a finalização de todas as threads
+    for (i = 0; i < dados->numthreads; i++)
+        pthread_join(threads[i], NULL);
     tempofinal = omp_get_wtime();
+       
+    //        
+    dados->resultado = 0;
     dados->tempogasto = tempofinal - tempoinicial;
+    
+    //Limpa a memória
+    free(threads);
+    free(info);
 }

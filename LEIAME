@@ -1,0 +1,6 @@
+Comandos disponíveis:
+
+make serial => Compila a versão serial
+make paralel => Compila a versão paralela
+.\bin\serial => Executa a versão serial
+.\bin\paralel => Executa a versão paralela
