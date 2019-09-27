@@ -20,9 +20,9 @@ typedef struct vetor_s {
 
 int resultado = 0;
 
-int global_achouresultado = 0;
+int global_achouresultado = 0; //Guarda a informação de resultado encontrada
 
-int global_escolheresq = 1;
+int global_escolheresq = 1; //Avisa as threads para escolherem o lado esq ou dir
 
 long global_numthreads; //Guarda o numero de threads criadas
 
@@ -36,6 +36,8 @@ long global_k; //Guarda a posição real do pivo
 
 vetor_t global_dados; //Guarda os dados que serão tratados pelo algoritmo
 
+// Barreiras de sincronização
+
 pthread_barrier_t barreira_pivo;
 
 pthread_barrier_t barreira_kglobal;
@@ -44,7 +46,9 @@ pthread_barrier_t barreira_escolherpartic;
 
 pthread_barrier_t barreira_processarescolha;
 
-
+//Separa a partição em duas partes...
+//..a esquerda com os números menores ou iguais ao pivô
+//..a direita com os números maios que o pivô
 long particaoDistribuida(int a[], long p, long r, int x) {
     long i = p - 1;
     
@@ -57,34 +61,15 @@ long particaoDistribuida(int a[], long p, long r, int x) {
     return i + 1 - p;
 }
 
-void imprimir(threadinfo_t* minhainfo) {
-    char teste[1000000];
-    long i;
-    
-
-    sprintf(teste, "Thread %ld: ", minhainfo->indice);
-    for (i = minhainfo->esq; i <= minhainfo->dir; i++)
-        sprintf(teste + strlen(teste), "%d ", minhainfo->vetor[i]);
-    sprintf(teste + strlen(teste), "\n\n");
-    
-    printf("%s\n", teste);
-    
-//    printf("esq(%ld): %ld\n", minhainfo->indice, minhainfo->esq);
-//    printf("dir(%ld): %ld\n", minhainfo->indice, minhainfo->dir);
-}
-
+//Procura pelas partições de cada thread onde está
+//o pivô escolhido
 int obter_pivo(threadinfo_t* info, long tam) {
     long i, x;
     
     x = rand() % tam;
-    
-    //printf("pos aleat: %lu\n", x);
     for (i = 0; i < global_numthreads; i++) {
-        //printf("%lu < %lu - %lu + 1\n", x, info[i].dir, info[i].esq);
-        if (x < info[i].dir - info[i].esq + 1) {
-            //printf("sim\n");
+        if (x < info[i].dir - info[i].esq + 1)
             return global_dados.dados[info[i].esq + x];
-        }
         x -= info[i].dir - info[i].esq + 1;
     }
     
@@ -92,10 +77,10 @@ int obter_pivo(threadinfo_t* info, long tam) {
     abort();
 }
 
+// Realiza Seleção sequencial quado houverem poucos itens
 int SelecaoAleatoriaSequencial(threadinfo_t* info, long tam) {
     int A[6 * global_numthreads];
     long i, j, k;
-    threadinfo_t abc = info[0];
 
     for (i = 0, j = 0; i < global_numthreads; i++) {
         for (k = info[i].esq; k <= info[i].dir; k++) {  
@@ -114,37 +99,39 @@ void* SelecaoAleatoriaDistribuida(void* info) {
     threadinfo_t* minhainfo = (threadinfo_t*)info;
     
     while (1) {
-        //printf("===\n");
-        //printf("iesimo: %lu\n", global_i);
-        //imprimir(minhainfo); 
         
         //A thread 0 calcula o pivô e o distribui para as demais
         //desde que a quantidade de dados sejam satisfatória
-        //do contrário a pesquisa será sequencial
+        //do contrário, ela mesmo faz a pesquisa  sequencialmente
         if (minhainfo->indice == 0) {
             tam = 0;
             for (long i = 0; i < global_numthreads; i++)
                 tam += minhainfo[i].dir - minhainfo[i].esq + 1;
-            //printf("tam: %lu\n", tam);
             if (6 * global_numthreads >= tam) {
                 resultado = SelecaoAleatoriaSequencial(minhainfo, tam);
                 global_achouresultado = 1;
             } else {
                 global_pivo = obter_pivo(minhainfo, tam);
                 local_pivo = global_pivo;
-                //printf("pivo: %d\n", local_pivo);
-                //printf("i: %lu\n", global_i);
             }
             
-            //printf("Thread %lu transmitindo pivo.\n", minhainfo->indice);
+            //Barreira de sincronização
+            //Avisa as demais threads que um pivô foi escolhido
             pthread_barrier_wait(&barreira_pivo);
             
+            //Se a pesquisa foi sequencial, então achou o resultado
+            //Hora de ir embora..tchau
             if (global_achouresultado)
                 pthread_exit(NULL);
         } else {
-            //printf("Thread %lu esperando transmissão pivo.\n", minhainfo->indice);
+            //Barreira de sincronização
+            //As demais threads estão aguardando pelo pivô da
+            //thread 0
             pthread_barrier_wait(&barreira_pivo);
             
+            //A thread 0 foi egoísta e decidiu procurar pelo
+            //resultado sozinha sequenciamente e já o encontrou
+            //Hora de ir embora, então
             if (global_achouresultado) {
                 pthread_exit(NULL);
             } else {
@@ -154,33 +141,23 @@ void* SelecaoAleatoriaDistribuida(void* info) {
     
         //Cada thread calculará a sua nova partição e a posição local
         //hipotética que o pivô teria se estivesse em uma destas partições
-        if (minhainfo->esq > minhainfo->dir) {
+        if (minhainfo->esq > minhainfo->dir)
             q = 0;
-            //printf("k_local(%lu): (vazio)\n", minhainfo->indice);
-        }
-        else {
+        else
             q = particaoDistribuida(minhainfo->vetor, minhainfo->esq, minhainfo->dir, local_pivo);
-            //printf("k_local(%lu): %lu\n", minhainfo->indice, q);
-        }
         global_klocais[minhainfo->indice] = q;
         
-        //imprimir(minhainfo);
-        
+        //Barreira de sincronização
         //Cada thread deve espearar até que todas as outras threads tenham
         //calculado seu k local
-        //printf("Thread %lu na barreira do k global.\n", minhainfo->indice);
         pthread_barrier_wait(&barreira_kglobal);
     
-        //A thread 0 junta as informações e encontra a posição k real do pivô
+        //A thread 0 consolidas as informações e encontra a posição k real do pivô
         if (minhainfo->indice == 0) {
             global_k = 0;
             for (long i = 0; i < global_numthreads; i++)
                 global_k += global_klocais[i];
-                
-            //printf("global_k: %lu\n", global_k);
             if (global_i == global_k) {
-                
-                //printf("res: %d\n", local_pivo);
                 
                 //Achou o resultado...avisa as demais threads para encerrarem
                 resultado = local_pivo;
@@ -188,6 +165,7 @@ void* SelecaoAleatoriaDistribuida(void* info) {
             }
             else if (global_i < global_k) {
         
+                //Não achou o resultado ainda...
                 //Avisa as outras threads para escolhear a partição da esquerda
                 global_escolheresq = 1;
             }
@@ -199,9 +177,9 @@ void* SelecaoAleatoriaDistribuida(void* info) {
             }
         }
         
-        //Cada thread deve espearar até que todas a thread 0 tenha
-        //determinado qual partição seguir ou encontrado o resultado
-        //printf("Thread %lu na barreira da escolha do lado da partição.\n", minhainfo->indice);
+        //Barreira de sincronização
+        //As demais threads devem espearar até que a thread 0 tenha
+        //determinado qual partição seguir ou o resultado final
         pthread_barrier_wait(&barreira_escolherpartic);
         if (global_achouresultado)
             pthread_exit(NULL);
@@ -211,9 +189,9 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         else
             minhainfo->esq = q;
             
+        //Barreira de sincronização
         //Cada thread deve espearar até que todas as outras threads
-        //tenha escolhido sua partição
-        //printf("Thread %lu na barreira para processamento da escolha.\n", minhainfo->indice);
+        //tenha atualizado os dados da escolha de partição
         pthread_barrier_wait(&barreira_processarescolha);
     }
     
