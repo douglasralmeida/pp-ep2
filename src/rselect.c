@@ -5,11 +5,11 @@
 
 // Randomized Selection
 
-unsigned long particao(int a[], unsigned long p, unsigned long r) {
+long particao(int a[], long p, long r) {
     int x = a[r];
-    unsigned long i = p - 1;
+    long i = p - 1;
 
-    for (unsigned long j = p; j < r; j++) {
+    for (long j = p; j < r; j++) {
         if (a[j] <= x) {
             i++;
             trocar(a + i, a + j);
@@ -20,10 +20,10 @@ unsigned long particao(int a[], unsigned long p, unsigned long r) {
     return i + 1;
 }
 
-unsigned long SelecaoAleatoria(int a[], unsigned long p, unsigned long r, unsigned long i) {
-    unsigned long pivo;
-    unsigned long q;
-    unsigned long k;
+long SelecaoAleatoria(int a[], long p, long r, long i) {
+    long pivo;
+    long q;
+    long k;
     
     //for (unsigned long xx = p; xx <= r; xx++)
     //    printf("%d ", a[xx]);

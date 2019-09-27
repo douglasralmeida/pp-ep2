@@ -5,24 +5,28 @@
 #include "rselect.h"
 
 
-void imprimirVetor(int* A, unsigned long n) {
-    for (unsigned long i = 0; i < n; i++)
+void imprimirVetor(int* A, long n) {
+    for (long i = 0; i < n; i++)
         printf("%d ", A[i]);
 }
 
-void processar(unsigned long n, unsigned long i, int imprimirtudo, unsigned long numthreads) {
+void processar(long n, long i, int imprimirtudo, long numthreads) {
     time_t hora;
     dados_t dados;
     
     srand((unsigned) time(&hora));
     dados.vetor = (int*)malloc(n * sizeof(int));
+    if (dados.vetor == NULL) {
+        printf("Erro ao alocar vetor de dados.\n");
+        abort();
+    }
     dados.numthreads = numthreads;
     dados.tamanho = n;
     dados.posicao = i;
     dados.resultado = 0;
     dados.tempogasto = 0.0;
-    for (unsigned long i = 0; i < n; i++)
-        dados.vetor[i] = rand();
+    for (long j = 0; j < n; j++)
+        dados.vetor[j] = rand();
     
     //printf("TESTE\n");
     //imprimirVetor(dados.vetor, n);
@@ -32,12 +36,12 @@ void processar(unsigned long n, unsigned long i, int imprimirtudo, unsigned long
 
     if (imprimirtudo) {
         imprimirVetor(dados.vetor, n);
-        printf("\n%lu\n", dados.resultado);
+        printf("\n%d\n", dados.resultado);
     }
     printf("%.6f\n", dados.tempogasto);
 }
 
-void receberEntrada(char* argv[], unsigned long* n, unsigned long* i, int* saidacompleta, unsigned long* t) {
+void receberEntrada(char* argv[], long* n, long* i, int* saidacompleta, long* t) {
     *n = atol(argv[1]);
     *i = atol(argv[2]);
     *saidacompleta = 0;
@@ -47,10 +51,10 @@ void receberEntrada(char* argv[], unsigned long* n, unsigned long* i, int* saida
 }
 
 int main(int argc, char *argv[]) {
-    unsigned long tamanho;
-    unsigned long iesimo;
+    long tamanho;
+    long iesimo;
     int saida;
-    unsigned long numthreads;
+    long numthreads;
     
     if (argc > 4) {
         receberEntrada(argv, &tamanho, &iesimo, &saida, &numthreads);

@@ -8,14 +8,14 @@
 
 typedef struct threadinfo_s {
     int* vetor;
-    unsigned long esq;
-    unsigned long dir;
-    unsigned long indice;
+    long esq;
+    long dir;
+    long indice;
 } threadinfo_t;
 
 typedef struct vetor_s {
     int* dados;
-    unsigned long tamanho;
+    long tamanho;
 } vetor_t;
 
 int resultado = 0;
@@ -24,15 +24,15 @@ int global_achouresultado = 0;
 
 int global_escolheresq = 1;
 
-unsigned long global_numthreads; //Guarda o numero de threads criadas
+long global_numthreads; //Guarda o numero de threads criadas
 
 int global_pivo; //Guarda o valor do pivô escolhido aleatoriamente
 
-unsigned long global_i; // Guarda a posição desejada
+long global_i; // Guarda a posição desejada
 
-unsigned long* global_klocais; //Guarda a k-ésima posição que cada thread calculou
+long* global_klocais; //Guarda a k-ésima posição que cada thread calculou
 
-unsigned long global_k; //Guarda a posição real do pivo
+long global_k; //Guarda a posição real do pivo
 
 vetor_t global_dados; //Guarda os dados que serão tratados pelo algoritmo
 
@@ -45,63 +45,36 @@ pthread_barrier_t barreira_escolherpartic;
 pthread_barrier_t barreira_processarescolha;
 
 
-unsigned long particaoDistribuida(int a[], unsigned long p, unsigned long r, int x) {
+long particaoDistribuida(int a[], long p, long r, int x) {
+    long i = p - 1;
     
-    //CODIGO ORIGINAL
-    unsigned long i = p - 1;
-    for (unsigned long j = p; j <= r; j++) {
+    for (long j = p; j <= r; j++) {
         if (a[j] <= x) {
             i++;
             trocar(a + i, a + j);
         }
     }
     return i + 1 - p;
-    
-
-    //OUTRO CODIGO
-    /*unsigned long local_r = r;
-    int tmp;
-    while (p < r) {
-        while (a[p] < x && p < r)
-            p++;
-        if (p == r)    
-            break;
-        while (a[r] > x && r > p)
-            r--;
-        if (p == r)
-            break;
-        if (a[p] == a[r])
-            p++;
-        else if (p < r) {
-            tmp = a[p];
-            a[p] = a[r];
-            a[r] = tmp;
-        }
-    }
-    if (r == local_r && a[r] < x)
-        r++;
-        
-    return r;*/
 }
 
 void imprimir(threadinfo_t* minhainfo) {
     char teste[1000000];
-    unsigned long i;
+    long i;
     
 
-    sprintf(teste, "Thread %lu: ", minhainfo->indice);
+    sprintf(teste, "Thread %ld: ", minhainfo->indice);
     for (i = minhainfo->esq; i <= minhainfo->dir; i++)
         sprintf(teste + strlen(teste), "%d ", minhainfo->vetor[i]);
     sprintf(teste + strlen(teste), "\n\n");
     
     printf("%s\n", teste);
     
-//    printf("esq(%lu): %lu\n", minhainfo->indice, minhainfo->esq);
-//    printf("dir(%lu): %lu\n", minhainfo->indice, minhainfo->dir);
+//    printf("esq(%ld): %ld\n", minhainfo->indice, minhainfo->esq);
+//    printf("dir(%ld): %ld\n", minhainfo->indice, minhainfo->dir);
 }
 
-int obter_pivo(threadinfo_t* info, unsigned long tam) {
-    unsigned long i, x;
+int obter_pivo(threadinfo_t* info, long tam) {
+    long i, x;
     
     x = rand() % tam;
     
@@ -119,12 +92,13 @@ int obter_pivo(threadinfo_t* info, unsigned long tam) {
     abort();
 }
 
-int SelecaoAleatoriaSequencial(threadinfo_t* info, unsigned long tam) {
+int SelecaoAleatoriaSequencial(threadinfo_t* info, long tam) {
     int A[6 * global_numthreads];
-    unsigned long i, j, k;
+    long i, j, k;
+    threadinfo_t abc = info[0];
 
     for (i = 0, j = 0; i < global_numthreads; i++) {
-        for (k = info[i].esq; k <= info[i].dir; k++) {
+        for (k = info[i].esq; k <= info[i].dir; k++) {  
 				    A[j] = info[i].vetor[k];
             j++;
         }
@@ -134,8 +108,8 @@ int SelecaoAleatoriaSequencial(threadinfo_t* info, unsigned long tam) {
 
 //SelecaoAleatoriaDistribuida é executada em cada thread paralelamente
 void* SelecaoAleatoriaDistribuida(void* info) {
-    unsigned long tam;
-    unsigned long q;
+    long tam;
+    long q;
     int local_pivo = -1;
     threadinfo_t* minhainfo = (threadinfo_t*)info;
     
@@ -149,7 +123,7 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         //do contrário a pesquisa será sequencial
         if (minhainfo->indice == 0) {
             tam = 0;
-            for (unsigned long i = 0; i < global_numthreads; i++)
+            for (long i = 0; i < global_numthreads; i++)
                 tam += minhainfo[i].dir - minhainfo[i].esq + 1;
             //printf("tam: %lu\n", tam);
             if (6 * global_numthreads >= tam) {
@@ -200,7 +174,7 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         //A thread 0 junta as informações e encontra a posição k real do pivô
         if (minhainfo->indice == 0) {
             global_k = 0;
-            for (unsigned long i = 0; i < global_numthreads; i++)
+            for (long i = 0; i < global_numthreads; i++)
                 global_k += global_klocais[i];
                 
             //printf("global_k: %lu\n", global_k);
@@ -247,7 +221,7 @@ void* SelecaoAleatoriaDistribuida(void* info) {
 }
 
 void selecionar(dados_t* dados) {
-    unsigned long i;
+    long i;
     threadinfo_t* info;
     pthread_t* threads;
     double tempoinicial, tempofinal;
@@ -258,7 +232,7 @@ void selecionar(dados_t* dados) {
     global_numthreads = dados->numthreads;
     global_dados.dados = dados->vetor;
     global_dados.tamanho = dados->tamanho;
-    global_klocais = (unsigned long*)malloc(dados->numthreads * sizeof(unsigned long));
+    global_klocais = (long*)malloc(dados->numthreads * sizeof(long));
     
     //Inicia barreiras
     pthread_barrier_init(&barreira_kglobal, NULL, dados->numthreads);
@@ -292,7 +266,7 @@ void selecionar(dados_t* dados) {
     dados->tempogasto = tempofinal - tempoinicial;
     
     //Limpa a memória
-    pthread_barrier_destroy(&barreira_pivo);
+    //pthread_barrier_destroy(&barreira_pivo);
     pthread_barrier_destroy(&barreira_kglobal);
     pthread_barrier_destroy(&barreira_processarescolha);
     pthread_barrier_destroy(&barreira_escolherpartic);
