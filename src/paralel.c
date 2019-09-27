@@ -27,9 +27,6 @@ unsigned long global_numthreads; //Guarda o numero de threads criadas
 
 int global_pivo; //Guarda o valor do pivô escolhido aleatoriamente
 
-unsigned long global_tamanhofalta; //Guarda o número de itens que ainda serão 
-                                   //tratados pelo algoritmo
-
 unsigned long global_i; // Guarda a posição desejada
 
 unsigned long* global_klocais; //Guarda a k-ésima posição que cada thread calculou
@@ -72,38 +69,46 @@ void imprimir(threadinfo_t* minhainfo) {
     printf("dir(%lu): %lu\n", minhainfo->indice, minhainfo->dir);
 }
 
-int obter_pivo(threadinfo_t* info) {
-    unsigned long i, x, local_x, tam;
+int obter_pivo(threadinfo_t* info, unsigned long tam) {
+    unsigned long i, x;
     
-    tam = 0;
-    x = rand() % global_tamanhofalta;
-    local_x = x;
+    x = rand() % tam;
+    printf("pos aleat: %lu\n", x);
     for (i = 0; i < global_numthreads; i++) {
-        tam += info[i].dir - info[i].esq + 1;
-        if (local_x < tam)
-            return global_dados.dados[info[i].esq + local_x];
-        local_x -= info[i].dir - info[i].esq + 1;
+        printf("%lu < %lu - %lu + 1\n", x, info[i].dir, info[i].esq);
+        if (x < info[i].dir - info[i].esq + 1) {
+            printf("sim\n");
+            return global_dados.dados[info[i].esq + x];
+        }
+        x -= info[i].dir - info[i].esq + 1;
     }
     
-    printf("Erro: Pivo não pode não encontrado (%lu).\n", x);
+    printf("Erro: Pivô não pôde não encontrado.\n");
     abort();
 }
 
 //SelecaoAleatoriaDistribuida é executada em cada thread paralelamente
 void* SelecaoAleatoriaDistribuida(void* info) {
+    unsigned long tam;
     unsigned long q;
     int local_pivo;
     threadinfo_t* minhainfo = (threadinfo_t*)info;
     
     while (1) {
-    
+        printf("===\n");
+        printf("iesimo: %lu\n", global_i);
         imprimir(minhainfo); 
         //A thread 0 calcula o pivô e o distribui para as demais
         if (minhainfo->indice == 0) {
-            pthread_mutex_lock(&mutex_global_pivo);        
-            global_pivo = obter_pivo(minhainfo);
+            pthread_mutex_lock(&mutex_global_pivo);
+            
+            tam = 0;
+            for (unsigned long i = 0; i < global_numthreads; i++)
+                tam += minhainfo[i].dir - minhainfo[i].esq + 1;
+            global_pivo = obter_pivo(minhainfo, tam);
             local_pivo = global_pivo;
             printf("pivo: %d\n", local_pivo);
+            
             pthread_cond_broadcast(&cond_global_pivo);
             pthread_mutex_unlock(&mutex_global_pivo);
         } else {
@@ -116,7 +121,7 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         //Cada thread calculará a sua nova partição e a posição local
         //hipotética que o pivô teria se estivesse em uma destas partições
         if (minhainfo->esq > minhainfo->dir) {
-            q = -1;
+            q = 0;
             printf("k_local(%lu): (vazio)\n", minhainfo->indice);
         }
         else {
@@ -164,10 +169,15 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         pthread_barrier_wait(&barreira_global);
         if (global_achouresultado)
             pthread_exit(NULL);
+        q += minhainfo->esq;
         if (global_escolheresq)
-            minhainfo->dir = minhainfo->esq + q - 1;
+            minhainfo->dir = q - 1;
         else
-            minhainfo->esq = minhainfo->dir - q + 1;
+            minhainfo->esq = q;
+            
+        //Cada thread deve espearar até que todas as outras threads
+        //tenha escolhido sua partição
+        pthread_barrier_wait(&barreira_global);
     }
     
     return NULL;
@@ -178,15 +188,12 @@ void selecionar(dados_t* dados) {
     threadinfo_t* info;
     pthread_t* threads;
     double tempoinicial, tempofinal;
-
-    printf("iesimo: %lu\n", dados->posicao);
     
     global_i = dados->posicao;
     global_k = 0;
     global_numthreads = dados->numthreads;
     global_dados.dados = dados->vetor;
     global_dados.tamanho = dados->tamanho;
-    global_tamanhofalta = dados->tamanho;
     global_klocais = (unsigned long*)malloc(dados->numthreads * sizeof(unsigned long));
     pthread_barrier_init(&barreira_global, NULL, dados->numthreads);
     
