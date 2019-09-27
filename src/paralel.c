@@ -74,11 +74,12 @@ int obter_pivo(threadinfo_t* info, unsigned long tam) {
     unsigned long i, x;
     
     x = rand() % tam;
-    printf("pos aleat: %lu\n", x);
+    
+    //printf("pos aleat: %lu\n", x);
     for (i = 0; i < global_numthreads; i++) {
-        printf("%lu < %lu - %lu + 1\n", x, info[i].dir, info[i].esq);
+        //printf("%lu < %lu - %lu + 1\n", x, info[i].dir, info[i].esq);
         if (x < info[i].dir - info[i].esq + 1) {
-            printf("sim\n");
+            //printf("sim\n");
             return global_dados.dados[info[i].esq + x];
         }
         x -= info[i].dir - info[i].esq + 1;
@@ -109,9 +110,9 @@ void* SelecaoAleatoriaDistribuida(void* info) {
     threadinfo_t* minhainfo = (threadinfo_t*)info;
     
     while (1) {
-        printf("===\n");
-        printf("iesimo: %lu\n", global_i);
-        imprimir(minhainfo); 
+        //printf("===\n");
+        //printf("iesimo: %lu\n", global_i);
+        //imprimir(minhainfo); 
         
         //A thread 0 calcula o pivô e o distribui para as demais
         //desde que a quantidade de dados sejam satisfatória
@@ -128,7 +129,7 @@ void* SelecaoAleatoriaDistribuida(void* info) {
             } else {
                 global_pivo = obter_pivo(minhainfo, tam);
                 local_pivo = global_pivo;
-                printf("pivo: %d\n", local_pivo);
+                //printf("pivo: %d\n", local_pivo);
             }
             
             pthread_cond_broadcast(&cond_global_pivo);
@@ -153,11 +154,11 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         //hipotética que o pivô teria se estivesse em uma destas partições
         if (minhainfo->esq > minhainfo->dir) {
             q = 0;
-            printf("k_local(%lu): (vazio)\n", minhainfo->indice);
+            //printf("k_local(%lu): (vazio)\n", minhainfo->indice);
         }
         else {
             q = particaoDistribuida(minhainfo->vetor, minhainfo->esq, minhainfo->dir, local_pivo);
-            printf("k_local(%lu): %lu\n", minhainfo->indice, q);
+            //printf("k_local(%lu): %lu\n", minhainfo->indice, q);
         }
         global_klocais[minhainfo->indice] = q;
         
@@ -173,10 +174,10 @@ void* SelecaoAleatoriaDistribuida(void* info) {
             for (unsigned long i = 0; i < global_numthreads; i++)
                 global_k += global_klocais[i];
                 
-            printf("global_k: %lu\n", global_k);
+            //printf("global_k: %lu\n", global_k);
             if (global_i == global_k) {
                 
-                printf("res: %d\n", local_pivo);
+                //printf("res: %d\n", local_pivo);
                 
                 //Achou o resultado...avisa as demais threads para encerrarem
                 resultado = local_pivo;

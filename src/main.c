@@ -22,11 +22,12 @@ void processar(unsigned long n, unsigned long i, int imprimirtudo, unsigned long
     dados.resultado = 0;
     dados.tempogasto = 0.0;
     for (unsigned long i = 0; i < n; i++)
-        dados.vetor[i] = rand() % 50;
+        dados.vetor[i] = rand();
     
-    printf("TESTE\n");
-    imprimirVetor(dados.vetor, n);
-    printf("\n");
+    //printf("TESTE\n");
+    //imprimirVetor(dados.vetor, n);
+    //printf("\n");
+    
     selecionar(&dados);
 
     if (imprimirtudo) {

@@ -4,3 +4,9 @@ make serial => Compila a versão serial
 make paralel => Compila a versão paralela
 .\bin\serial => Executa a versão serial
 .\bin\paralel => Executa a versão paralela
+
+.\ts.sh => Teste da versão sequencial
+.\tp2.sh => Teste da versão paralela com 2 threads
+.\tp4.sh => Teste da versão paralela com 4 threads
+.\tp8.sh => Teste da versão paralela com 8 threads
+.\tp16.sh => Teste da versão paralela com 16 threads
