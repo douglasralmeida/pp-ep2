@@ -13,5 +13,5 @@ echo "Execução paralela 8T"
 echo "Execução paralela 16T"
 ./tp16.sh
 
-echo "Execução paralela 132T"
+echo "Execução paralela 32T"
 ./tp32.sh
