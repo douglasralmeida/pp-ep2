@@ -7,13 +7,13 @@ SERIALNAME=serial
 PARALELNAME=paralel
 CC=gcc
 
-CFLAGS=-fopenmp -std=c99 -c -O3 -Wall -Wextra -Wpedantic $(DEFS) -Iinclude/
+CFLAGS=-fopenmp -std=c99 -D_XOPEN_SOURCE=600 -c -O3 -Wall -Wextra -Wpedantic $(DEFS) -Iinclude/
 LIBS=-lm -lpthread -fopenmp
 DBGFLAGS=-ggdb -fno-inline -fno-omit-frame-pointer
 BINDIR=bin
 OBJDIR=obj
 SOBJFILES=utils.o rselect.o serial.o main.o
-POBJFILES=paralel.o main.o
+POBJFILES=utils.o paralel.o main.o
 SOBJECTS=$(addprefix $(OBJDIR)/, $(SOBJFILES))
 POBJECTS=$(addprefix $(OBJDIR)/, $(POBJFILES))
 SOURCEDIR=src

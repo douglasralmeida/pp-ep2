@@ -23,7 +23,10 @@ void processar(unsigned long n, unsigned long i, int imprimirtudo, unsigned long
     dados.tempogasto = 0.0;
     for (unsigned long i = 0; i < n; i++)
         dados.vetor[i] = rand() % 50;
-        
+    
+    printf("TESTE\n");
+    imprimirVetor(dados.vetor, n);
+    printf("\n");
     selecionar(&dados);
 
     if (imprimirtudo) {
