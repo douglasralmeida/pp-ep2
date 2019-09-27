@@ -36,38 +36,68 @@ unsigned long global_k; //Guarda a posição real do pivo
 
 vetor_t global_dados; //Guarda os dados que serão tratados pelo algoritmo
 
-pthread_cond_t cond_global_pivo = PTHREAD_COND_INITIALIZER;
+pthread_barrier_t barreira_pivo;
 
-pthread_mutex_t mutex_global_pivo = PTHREAD_MUTEX_INITIALIZER;
+pthread_barrier_t barreira_kglobal;
 
-pthread_barrier_t barreira_global;
+pthread_barrier_t barreira_escolherpartic;
+
+pthread_barrier_t barreira_processarescolha;
 
 
-int particaoDistribuida(int a[], unsigned long p, unsigned long r, int x) {
+unsigned long particaoDistribuida(int a[], unsigned long p, unsigned long r, int x) {
+    
+    //CODIGO ORIGINAL
     unsigned long i = p - 1;
-
     for (unsigned long j = p; j <= r; j++) {
         if (a[j] <= x) {
             i++;
             trocar(a + i, a + j);
         }
     }
+    return i + 1 - p;
+    
 
-    return i - p + 1;
+    //OUTRO CODIGO
+    /*unsigned long local_r = r;
+    int tmp;
+    while (p < r) {
+        while (a[p] < x && p < r)
+            p++;
+        if (p == r)    
+            break;
+        while (a[r] > x && r > p)
+            r--;
+        if (p == r)
+            break;
+        if (a[p] == a[r])
+            p++;
+        else if (p < r) {
+            tmp = a[p];
+            a[p] = a[r];
+            a[r] = tmp;
+        }
+    }
+    if (r == local_r && a[r] < x)
+        r++;
+        
+    return r;*/
 }
 
 void imprimir(threadinfo_t* minhainfo) {
-    char teste[256];
+    char teste[1000000];
     unsigned long i;
     
+
     sprintf(teste, "Thread %lu: ", minhainfo->indice);
     for (i = minhainfo->esq; i <= minhainfo->dir; i++)
         sprintf(teste + strlen(teste), "%d ", minhainfo->vetor[i]);
     sprintf(teste + strlen(teste), "\n\n");
-    printf("%s", teste);
     
-    printf("esq(%lu): %lu\n", minhainfo->indice, minhainfo->esq);
-    printf("dir(%lu): %lu\n", minhainfo->indice, minhainfo->dir);
+    printf("%s\n", teste);
+    
+//    printf("esq(%lu): %lu\n", minhainfo->indice, minhainfo->esq);
+//    printf("dir(%lu): %lu\n", minhainfo->indice, minhainfo->dir);
 }
 
 int obter_pivo(threadinfo_t* info, unsigned long tam) {
@@ -90,16 +120,16 @@ int obter_pivo(threadinfo_t* info, unsigned long tam) {
 }
 
 int SelecaoAleatoriaSequencial(threadinfo_t* info, unsigned long tam) {
-    int A[4 * global_numthreads];
+    int A[6 * global_numthreads];
     unsigned long i, j, k;
 
-    for (i = 0, j = 0; j < global_numthreads; i++) {
+    for (i = 0, j = 0; i < global_numthreads; i++) {
         for (k = info[i].esq; k <= info[i].dir; k++) {
 				    A[j] = info[i].vetor[k];
             j++;
         }
     }
-    return SelecaoAleatoria(A, 0, tam, global_i);
+    return SelecaoAleatoria(A, 0, tam - 1, global_i);
 }
 
 //SelecaoAleatoriaDistribuida é executada em cada thread paralelamente
@@ -118,36 +148,34 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         //desde que a quantidade de dados sejam satisfatória
         //do contrário a pesquisa será sequencial
         if (minhainfo->indice == 0) {
-            pthread_mutex_lock(&mutex_global_pivo);
-            
             tam = 0;
             for (unsigned long i = 0; i < global_numthreads; i++)
                 tam += minhainfo[i].dir - minhainfo[i].esq + 1;
-            if (4 * global_numthreads >= tam) {
+            //printf("tam: %lu\n", tam);
+            if (6 * global_numthreads >= tam) {
                 resultado = SelecaoAleatoriaSequencial(minhainfo, tam);
                 global_achouresultado = 1;
             } else {
                 global_pivo = obter_pivo(minhainfo, tam);
                 local_pivo = global_pivo;
                 //printf("pivo: %d\n", local_pivo);
+                //printf("i: %lu\n", global_i);
             }
             
-            pthread_cond_broadcast(&cond_global_pivo);
-            pthread_mutex_unlock(&mutex_global_pivo);
+            //printf("Thread %lu transmitindo pivo.\n", minhainfo->indice);
+            pthread_barrier_wait(&barreira_pivo);
             
             if (global_achouresultado)
                 pthread_exit(NULL);
         } else {
-            pthread_mutex_lock(&mutex_global_pivo);
-            pthread_cond_wait(&cond_global_pivo, &mutex_global_pivo);
+            //printf("Thread %lu esperando transmissão pivo.\n", minhainfo->indice);
+            pthread_barrier_wait(&barreira_pivo);
             
             if (global_achouresultado) {
                 pthread_exit(NULL);
             } else {
                 local_pivo = global_pivo;
             }
-            
-            pthread_mutex_unlock(&mutex_global_pivo);
         }
     
         //Cada thread calculará a sua nova partição e a posição local
@@ -162,11 +190,12 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         }
         global_klocais[minhainfo->indice] = q;
         
-        imprimir(minhainfo);
+        //imprimir(minhainfo);
         
         //Cada thread deve espearar até que todas as outras threads tenham
         //calculado seu k local
-        pthread_barrier_wait(&barreira_global);
+        //printf("Thread %lu na barreira do k global.\n", minhainfo->indice);
+        pthread_barrier_wait(&barreira_kglobal);
     
         //A thread 0 junta as informações e encontra a posição k real do pivô
         if (minhainfo->indice == 0) {
@@ -198,7 +227,8 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         
         //Cada thread deve espearar até que todas a thread 0 tenha
         //determinado qual partição seguir ou encontrado o resultado
-        pthread_barrier_wait(&barreira_global);
+        //printf("Thread %lu na barreira da escolha do lado da partição.\n", minhainfo->indice);
+        pthread_barrier_wait(&barreira_escolherpartic);
         if (global_achouresultado)
             pthread_exit(NULL);
         q += minhainfo->esq;
@@ -209,7 +239,8 @@ void* SelecaoAleatoriaDistribuida(void* info) {
             
         //Cada thread deve espearar até que todas as outras threads
         //tenha escolhido sua partição
-        pthread_barrier_wait(&barreira_global);
+        //printf("Thread %lu na barreira para processamento da escolha.\n", minhainfo->indice);
+        pthread_barrier_wait(&barreira_processarescolha);
     }
     
     return NULL;
@@ -221,13 +252,19 @@ void selecionar(dados_t* dados) {
     pthread_t* threads;
     double tempoinicial, tempofinal;
     
+    //Inicia variáveis globais p/ threads
     global_i = dados->posicao;
     global_k = 0;
     global_numthreads = dados->numthreads;
     global_dados.dados = dados->vetor;
     global_dados.tamanho = dados->tamanho;
     global_klocais = (unsigned long*)malloc(dados->numthreads * sizeof(unsigned long));
-    pthread_barrier_init(&barreira_global, NULL, dados->numthreads);
+    
+    //Inicia barreiras
+    pthread_barrier_init(&barreira_kglobal, NULL, dados->numthreads);
+    pthread_barrier_init(&barreira_escolherpartic, NULL, dados->numthreads);
+    pthread_barrier_init(&barreira_processarescolha, NULL, dados->numthreads);
+    pthread_barrier_init(&barreira_pivo, NULL, dados->numthreads);
     
     //Cria as threads e divide o vetor inicial para cada uma
     info = (threadinfo_t*)malloc(dados->numthreads * sizeof(threadinfo_t));
@@ -250,12 +287,15 @@ void selecionar(dados_t* dados) {
         pthread_join(threads[i], NULL);
     tempofinal = omp_get_wtime();
        
-    //        
+    //Grava resultados
     dados->resultado = resultado;
     dados->tempogasto = tempofinal - tempoinicial;
     
     //Limpa a memória
-    pthread_barrier_destroy(&barreira_global);
+    pthread_barrier_destroy(&barreira_pivo);
+    pthread_barrier_destroy(&barreira_kglobal);
+    pthread_barrier_destroy(&barreira_processarescolha);
+    pthread_barrier_destroy(&barreira_escolherpartic);
     free(threads);
     free(info);
 }

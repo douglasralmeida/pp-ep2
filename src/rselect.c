@@ -25,10 +25,15 @@ unsigned long SelecaoAleatoria(int a[], unsigned long p, unsigned long r, unsign
     unsigned long q;
     unsigned long k;
     
+    //for (unsigned long xx = p; xx <= r; xx++)
+    //    printf("%d ", a[xx]);
+   // printf("\n");
+    
     if (p == r)
         return a[p];
     pivo = p + rand() % (r - p + 1);
-    trocar(a + pivo, a + p);
+    //printf("pivo: %d\n", a[pivo]);
+    trocar(a + pivo, a + r);
     q = particao(a, p, r);
     k = q - p + 1;
     if (i == k)

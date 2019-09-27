@@ -17,8 +17,8 @@ POBJFILES=utils.o rselect.o paralel.o main.o
 SOBJECTS=$(addprefix $(OBJDIR)/, $(SOBJFILES))
 POBJECTS=$(addprefix $(OBJDIR)/, $(POBJFILES))
 SOURCEDIR=src
-ARGS=25 23 all 2
-ARGS1=30 4 all 2
+ARGS=1000 3 all 3
+ARGS1=25 23 all 2
 
 $(OBJDIR)/%.o: $(SOURCEDIR)/%.c
 	@echo 
@@ -55,7 +55,7 @@ clean:
 	rm -f $(SOBJECTS)
 	
 debug:
-	gdb --args ./$(BINDIR)/$(SERIALNAME) $(ARGS)
+	gdb --args ./$(BINDIR)/$(PARALELNAME) $(ARGS)
 
 memcheck:
 	valgrind -v --leak-check=yes --track-origins=yes $(BINDIR)/$(PROJECTNAME) $(ARGS)
