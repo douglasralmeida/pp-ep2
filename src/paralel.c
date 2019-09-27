@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "rselect.h"
 #include "utils.h"
 
 typedef struct threadinfo_s {
@@ -42,11 +43,11 @@ pthread_mutex_t mutex_global_pivo = PTHREAD_MUTEX_INITIALIZER;
 pthread_barrier_t barreira_global;
 
 
-int particao(int a[], unsigned long p, unsigned long r, int x) {
+int particaoDistribuida(int a[], unsigned long p, unsigned long r, int x) {
     unsigned long i = p - 1;
 
     for (unsigned long j = p; j <= r; j++) {
-        if(a[j] <= x){
+        if (a[j] <= x) {
             i++;
             trocar(a + i, a + j);
         }
@@ -87,34 +88,64 @@ int obter_pivo(threadinfo_t* info, unsigned long tam) {
     abort();
 }
 
+int SelecaoAleatoriaSequencial(threadinfo_t* info, unsigned long tam) {
+    int A[4 * global_numthreads];
+    unsigned long i, j, k;
+
+    for (i = 0, j = 0; j < global_numthreads; i++) {
+        for (k = info[i].esq; k <= info[i].dir; k++) {
+				    A[j] = info[i].vetor[k];
+            j++;
+        }
+    }
+    return SelecaoAleatoria(A, 0, tam, global_i);
+}
+
 //SelecaoAleatoriaDistribuida é executada em cada thread paralelamente
 void* SelecaoAleatoriaDistribuida(void* info) {
     unsigned long tam;
     unsigned long q;
-    int local_pivo;
+    int local_pivo = -1;
     threadinfo_t* minhainfo = (threadinfo_t*)info;
     
     while (1) {
         printf("===\n");
         printf("iesimo: %lu\n", global_i);
         imprimir(minhainfo); 
+        
         //A thread 0 calcula o pivô e o distribui para as demais
+        //desde que a quantidade de dados sejam satisfatória
+        //do contrário a pesquisa será sequencial
         if (minhainfo->indice == 0) {
             pthread_mutex_lock(&mutex_global_pivo);
             
             tam = 0;
             for (unsigned long i = 0; i < global_numthreads; i++)
                 tam += minhainfo[i].dir - minhainfo[i].esq + 1;
-            global_pivo = obter_pivo(minhainfo, tam);
-            local_pivo = global_pivo;
-            printf("pivo: %d\n", local_pivo);
+            if (4 * global_numthreads >= tam) {
+                resultado = SelecaoAleatoriaSequencial(minhainfo, tam);
+                global_achouresultado = 1;
+            } else {
+                global_pivo = obter_pivo(minhainfo, tam);
+                local_pivo = global_pivo;
+                printf("pivo: %d\n", local_pivo);
+            }
             
             pthread_cond_broadcast(&cond_global_pivo);
             pthread_mutex_unlock(&mutex_global_pivo);
+            
+            if (global_achouresultado)
+                pthread_exit(NULL);
         } else {
             pthread_mutex_lock(&mutex_global_pivo);
             pthread_cond_wait(&cond_global_pivo, &mutex_global_pivo);
-            local_pivo = global_pivo;
+            
+            if (global_achouresultado) {
+                pthread_exit(NULL);
+            } else {
+                local_pivo = global_pivo;
+            }
+            
             pthread_mutex_unlock(&mutex_global_pivo);
         }
     
@@ -125,7 +156,7 @@ void* SelecaoAleatoriaDistribuida(void* info) {
             printf("k_local(%lu): (vazio)\n", minhainfo->indice);
         }
         else {
-            q = particao(minhainfo->vetor, minhainfo->esq, minhainfo->dir, local_pivo);
+            q = particaoDistribuida(minhainfo->vetor, minhainfo->esq, minhainfo->dir, local_pivo);
             printf("k_local(%lu): %lu\n", minhainfo->indice, q);
         }
         global_klocais[minhainfo->indice] = q;

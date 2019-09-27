@@ -5,12 +5,12 @@
 
 // Randomized Selection
 
-int particao(int a[], int p, int r) {
+unsigned long particao(int a[], unsigned long p, unsigned long r) {
     int x = a[r];
-    int i = p - 1;
+    unsigned long i = p - 1;
 
-    for (int j = p; j < r; j++) {
-        if(a[j] <= x){
+    for (unsigned long j = p; j < r; j++) {
+        if (a[j] <= x) {
             i++;
             trocar(a + i, a + j);
         }
@@ -20,21 +20,16 @@ int particao(int a[], int p, int r) {
     return i + 1;
 }
 
-int ParticaoAleatoria(int a[], int p, int r) {
-    int i = p + rand() % (r - p + 1);
-
-    trocar(a + i, a + p);
-
-    return particao(a, p, r);
-}
-
-int SelecaoAleatoria(int a[], int p, int r, int i) {
-    int q;
-    int k;
+unsigned long SelecaoAleatoria(int a[], unsigned long p, unsigned long r, unsigned long i) {
+    unsigned long pivo;
+    unsigned long q;
+    unsigned long k;
     
     if (p == r)
         return a[p];
-    q = ParticaoAleatoria(a, p, r);
+    pivo = p + rand() % (r - p + 1);
+    trocar(a + pivo, a + p);
+    q = particao(a, p, r);
     k = q - p + 1;
     if (i == k)
         return a[q];

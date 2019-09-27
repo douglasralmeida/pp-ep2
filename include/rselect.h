@@ -1,10 +1,8 @@
 #ifndef RSELECT_H
 #define RSELECT_H
 
-int particao(int a[], int p, int r);
+unsigned long particao(int a[], unsigned long p, unsigned long r);
 
-int ParticaoAleatoria(int a[], int p, int r);
-
-int SelecaoAleatoria(int a[], int p, int r, int i);
+unsigned long SelecaoAleatoria(int a[], unsigned long p, unsigned long r, unsigned long i);
 
 #endif
