@@ -93,69 +93,55 @@ int SelecaoAleatoriaSequencial(threadinfo_t* info) {
 
 //SelecaoAleatoriaDistribuida é executada em cada thread paralelamente
 void* SelecaoAleatoriaDistribuida(void* info) {
-    long q;
-    int local_pivo = -1;
-    threadinfo_t* minhainfo = (threadinfo_t*)info;
+    long local_k;
+    threadinfo_t* local_info = (threadinfo_t*)info;
     
     while (1) {
-        
+
         //A thread 0 calcula o pivô e o distribui para as demais
-        //desde que a quantidade de dados sejam satisfatória
-        //do contrário, ela mesmo faz a pesquisa  sequencialmente
-        if (minhainfo->indice == 0) {
+        //desde que a quantidade de dados seja satisfatória
+        //do contrário, ela mesmo faz a pesquisa sequencialmente
+        if (local_info->indice == 0) {
             if (6 * global_numthreads >= global_dados.tamanho) {
-                resultado = SelecaoAleatoriaSequencial(minhainfo);
+                resultado = SelecaoAleatoriaSequencial(local_info);
                 global_achouresultado = 1;
-            } else {
-                global_pivo = obter_pivo(minhainfo);
-                local_pivo = global_pivo;
-            }
-            
-            //Barreira de sincronização
-            //Avisa as demais threads que um pivô foi escolhido
-            pthread_barrier_wait(&barreira_pivo);
-            
-            //Se a pesquisa foi sequencial, então achou o resultado
-            //Hora de ir embora..tchau
-            if (global_achouresultado)
-                pthread_exit(NULL);
-        } else {
-            //Barreira de sincronização
-            //As demais threads estão aguardando pelo pivô da
-            //thread 0
-            pthread_barrier_wait(&barreira_pivo);
-            
-            //A thread 0 foi egoísta e decidiu procurar pelo
-            //resultado sozinha sequenciamente e já o encontrou
-            //Hora de ir embora, então
-            if (global_achouresultado)
-                pthread_exit(NULL);
-            else
-                local_pivo = global_pivo;
+            } else
+                global_pivo = obter_pivo(local_info);
         }
+        
+        //Barreira de sincronização
+        //As demais threads estão aguardando pelo pivô da
+        //thread 0
+        pthread_barrier_wait(&barreira_pivo);
+        
+        //A thread 0 foi egoísta e decidiu procurar pelo
+        //resultado sozinha sequenciamente e já o encontrou
+        //Hora de ir embora, então
+        if (global_achouresultado)
+            pthread_exit(NULL);
     
         //Cada thread calculará a sua nova partição e a posição local
         //hipotética que o pivô teria se estivesse em uma destas partições
-        if (minhainfo->esq > minhainfo->dir)
-            q = 0;
+        if (local_info->esq > local_info->dir)
+            local_k = 0;
         else
-            q = particaoDistribuida(minhainfo->vetor, minhainfo->esq, minhainfo->dir, local_pivo);
-        global_klocais[minhainfo->indice] = q;
+            local_k = particaoDistribuida(local_info->vetor, local_info->esq, local_info->dir, global_pivo);
+        global_klocais[local_info->indice] = local_k;
         
         //Barreira de sincronização
         //Cada thread deve espearar até que todas as outras threads tenham
         //calculado seu k local
         pthread_barrier_wait(&barreira_kglobal);
-    
-        //A thread 0 consolidas as informações e encontra a posição k real do pivô
-        if (minhainfo->indice == 0) {
+
+        //A thread 0 consolida as informações e encontra a posição k real do pivô
+        if (local_info->indice == 0) {
             global_k = 0;
             for (long i = 0; i < global_numthreads; i++)
                 global_k += global_klocais[i];
             if (global_i == global_k) {
                 
                 //Achou o resultado...avisa as demais threads para encerrarem
-                resultado = local_pivo;
+                resultado = global_pivo;
                 global_achouresultado = 1;
             }
             else if (global_i < global_k) {
@@ -180,11 +166,11 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         pthread_barrier_wait(&barreira_escolherpartic);
         if (global_achouresultado)
             pthread_exit(NULL);
-        q += minhainfo->esq;
+        local_k += local_info->esq;
         if (global_escolheresq)
-            minhainfo->dir = q - 1;
+            local_info->dir = local_k - 1;
         else
-            minhainfo->esq = q;
+            local_info->esq = local_k;
             
         //Barreira de sincronização
         //Cada thread deve espearar até que todas as outras threads
@@ -241,7 +227,7 @@ void selecionar(dados_t* dados) {
     dados->tempogasto = tempofinal - tempoinicial;
     
     //Limpa a memória
-    //pthread_barrier_destroy(&barreira_pivo);
+    pthread_barrier_destroy(&barreira_pivo);
     pthread_barrier_destroy(&barreira_kglobal);
     pthread_barrier_destroy(&barreira_processarescolha);
     pthread_barrier_destroy(&barreira_escolherpartic);
