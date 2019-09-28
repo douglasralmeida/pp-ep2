@@ -27,11 +27,7 @@ void processar(long n, long i, int imprimirtudo, long numthreads) {
     dados.tempogasto = 0.0;
     for (long j = 0; j < n; j++)
         dados.vetor[j] = rand();
-    
-    //printf("TESTE\n");
-    //imprimirVetor(dados.vetor, n);
-    //printf("\n");
-    
+
     selecionar(&dados);
 
     if (imprimirtudo) {

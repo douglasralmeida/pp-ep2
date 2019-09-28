@@ -84,7 +84,7 @@ int SelecaoAleatoriaSequencial(threadinfo_t* info, long tam) {
 
     for (i = 0, j = 0; i < global_numthreads; i++) {
         for (k = info[i].esq; k <= info[i].dir; k++) {  
-				    A[j] = info[i].vetor[k];
+            A[j] = info[i].vetor[k];
             j++;
         }
     }
@@ -132,11 +132,10 @@ void* SelecaoAleatoriaDistribuida(void* info) {
             //A thread 0 foi egoísta e decidiu procurar pelo
             //resultado sozinha sequenciamente e já o encontrou
             //Hora de ir embora, então
-            if (global_achouresultado) {
+            if (global_achouresultado)
                 pthread_exit(NULL);
-            } else {
+            else
                 local_pivo = global_pivo;
-            }
         }
     
         //Cada thread calculará a sua nova partição e a posição local
