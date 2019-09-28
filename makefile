@@ -17,7 +17,7 @@ POBJFILES=utils.o rselect.o paralel.o main.o
 SOBJECTS=$(addprefix $(OBJDIR)/, $(SOBJFILES))
 POBJECTS=$(addprefix $(OBJDIR)/, $(POBJFILES))
 SOURCEDIR=src
-ARGS=100000000 3 time 16
+ARGS=25 23 all 2
 ARGS1=25 23 all 2
 
 $(OBJDIR)/%.o: $(SOURCEDIR)/%.c

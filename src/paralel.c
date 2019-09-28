@@ -63,10 +63,10 @@ long particaoDistribuida(int a[], long p, long r, int x) {
 
 //Procura pelas partições de cada thread onde está
 //o pivô escolhido
-int obter_pivo(threadinfo_t* info, long tam) {
+int obter_pivo(threadinfo_t* info) {
     long i, x;
     
-    x = rand() % tam;
+    x = rand() % global_dados.tamanho;
     for (i = 0; i < global_numthreads; i++) {
         if (x < info[i].dir - info[i].esq + 1)
             return global_dados.dados[info[i].esq + x];
@@ -78,7 +78,7 @@ int obter_pivo(threadinfo_t* info, long tam) {
 }
 
 // Realiza Seleção sequencial quado houverem poucos itens
-int SelecaoAleatoriaSequencial(threadinfo_t* info, long tam) {
+int SelecaoAleatoriaSequencial(threadinfo_t* info) {
     int A[6 * global_numthreads];
     long i, j, k;
 
@@ -88,12 +88,11 @@ int SelecaoAleatoriaSequencial(threadinfo_t* info, long tam) {
             j++;
         }
     }
-    return SelecaoAleatoria(A, 0, tam - 1, global_i);
+    return SelecaoAleatoria(A, 0, global_dados.tamanho - 1, global_i);
 }
 
 //SelecaoAleatoriaDistribuida é executada em cada thread paralelamente
 void* SelecaoAleatoriaDistribuida(void* info) {
-    long tam;
     long q;
     int local_pivo = -1;
     threadinfo_t* minhainfo = (threadinfo_t*)info;
@@ -104,14 +103,11 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         //desde que a quantidade de dados sejam satisfatória
         //do contrário, ela mesmo faz a pesquisa  sequencialmente
         if (minhainfo->indice == 0) {
-            tam = 0;
-            for (long i = 0; i < global_numthreads; i++)
-                tam += minhainfo[i].dir - minhainfo[i].esq + 1;
-            if (6 * global_numthreads >= tam) {
-                resultado = SelecaoAleatoriaSequencial(minhainfo, tam);
+            if (6 * global_numthreads >= global_dados.tamanho) {
+                resultado = SelecaoAleatoriaSequencial(minhainfo);
                 global_achouresultado = 1;
             } else {
-                global_pivo = obter_pivo(minhainfo, tam);
+                global_pivo = obter_pivo(minhainfo);
                 local_pivo = global_pivo;
             }
             
@@ -167,12 +163,14 @@ void* SelecaoAleatoriaDistribuida(void* info) {
                 //Não achou o resultado ainda...
                 //Avisa as outras threads para escolhear a partição da esquerda
                 global_escolheresq = 1;
+                global_dados.tamanho = global_k;
             }
             else {
     
                 //Avisa as outras threads para escolhear a partição da direita
                 global_escolheresq = 0;
                 global_i -= global_k;
+                global_dados.tamanho -= global_k;
             }
         }
         
