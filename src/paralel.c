@@ -48,7 +48,7 @@ pthread_barrier_t barreira_processarescolha;
 
 //Separa a partição em duas partes...
 //..a esquerda com os números menores ou iguais ao pivô
-//..a direita com os números maios que o pivô
+//..a direita com os números maiores que o pivô
 long particaoDistribuida(int a[], long p, long r, int x) {
     long i = p - 1;
     
@@ -73,7 +73,7 @@ int obter_pivo(threadinfo_t* info) {
         x -= info[i].dir - info[i].esq + 1;
     }
     
-    printf("Erro: Pivô não pôde não encontrado.\n");
+    printf("Erro: Pivô não pôde ser encontrado.\n");
     abort();
 }
 
@@ -120,8 +120,8 @@ void* SelecaoAleatoriaDistribuida(void* info) {
         if (global_achouresultado)
             pthread_exit(NULL);
     
-        //Cada thread calculará a sua nova partição e a posição local
-        //hipotética que o pivô teria se estivesse em uma destas partições
+        //Cada thread reorganizará a sua partição e encontrará a posição
+        //local hipotética que o pivô teria se estivesse na partição
         if (local_info->esq > local_info->dir)
             local_k = 0;
         else

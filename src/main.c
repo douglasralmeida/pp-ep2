@@ -56,7 +56,9 @@ int main(int argc, char *argv[]) {
         receberEntrada(argv, &tamanho, &iesimo, &saida, &numthreads);
         processar(tamanho, iesimo, saida, numthreads);
     }
-    else
+    else {
+        printf("Erro ao alocar vetor de dados.\n");
         exit(EXIT_FAILURE);
+    }
     exit(EXIT_SUCCESS);
 }
